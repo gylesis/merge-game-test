@@ -256,7 +256,7 @@ namespace Dev.GridLogic
             GridUnitData unitData = cellData.UnitData;
             cellData.AssignUnitData(null);
 
-            unit.transform.position = targetCellView.PlacePos;
+            unit.SetPosition(targetCellView.PlacePos);
 
             CellData targetCellData = GetCellData(targetCellView);
             targetCellData.AssignUnitData(unitData);

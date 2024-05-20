@@ -18,7 +18,15 @@ namespace Dev.GridLogic
         private GridController _gridController;
         private GridCellView _currentCellView;
 
-        private float _ufoHuntTimer; 
+        private float _ufoHuntTimer;
+
+        public float DifficultyModifier()
+        {
+            int cellsCount = _gridController.GridSize.x * _gridController.GridSize.y;
+
+            float time = 1 - ((float)(_gridController.MaxUnitLevel * _gridController.BusyCellsCount) / cellsCount);
+            return _ufoHuntTimeDifficulty.Evaluate(time);
+        }
         
         private void Awake()
         {
@@ -34,12 +42,8 @@ namespace Dev.GridLogic
         private void Update()
         {
             _ufoHuntTimer += Time.deltaTime;
-            
-            int cellsCount = _gridController.GridSize.x * _gridController.GridSize.y;
-
-            float time = 1 - ((float)(_gridController.MaxUnitLevel * _gridController.BusyCellsCount) / cellsCount);
-            float modifier = _ufoHuntTimeDifficulty.Evaluate(time);
-            float huntTime = modifier * _ufoHuntBaseTime;   
+        
+            float huntTime = DifficultyModifier() * _ufoHuntBaseTime;   
 
             if (_ufoHuntTimer >= huntTime)
             {
@@ -64,6 +68,8 @@ namespace Dev.GridLogic
 
             if (_gridController.TryGetRandomBusyCell(out var cellView) == false) return;
 
+            float difficultyModifier = DifficultyModifier();
+            
             _currentCellView = cellView;
             _currentCellView.SetBlinkingState(true);
 
@@ -73,17 +79,20 @@ namespace Dev.GridLogic
             _ufo.transform.position = ufoPos;
 
             Vector3 targetUfoPos = _currentCellView.PlacePos + Vector3.up * _ufoHeight;
-            _ufo.transform.DOMove(targetUfoPos, 1.5f);
+            _ufo.transform.DOMove(targetUfoPos, 1.5f * difficultyModifier);
 
             GridUnit copyOfUnit = _gridController.SpawnCopyOfUnit(_currentCellView);
             copyOfUnit.gameObject.SetActive(false);
     
-            bool hasPlayerRemovedUnit = false;
-            
             Sequence sequence = DOTween.Sequence();
 
+            _ufo.SetProgressBarState(true);
+            _ufo.StartProgressBar(1, _ufoCaptureUnitTime * difficultyModifier - 0.1f);
+            
+            bool hasPlayerRemovedUnit = false;
+            
             sequence    
-                .AppendInterval(_ufoCaptureUnitTime)
+                .AppendInterval(_ufoCaptureUnitTime * difficultyModifier)
                 .AppendCallback((() =>
                 {
                     bool isCellStillBusy = _gridController.IsCellViewBusy(_currentCellView);
@@ -92,7 +101,7 @@ namespace Dev.GridLogic
                     {
                         hasPlayerRemovedUnit = true;
                         copyOfUnit.gameObject.SetActive(true);
-                        copyOfUnit.transform.DOMoveY(_ufo.transform.position.y - 1, 1);
+                        copyOfUnit.transform.DOMoveY(_ufo.transform.position.y - 1, 1 * difficultyModifier);
                         _gridController.RemoveUnitFromCell(_currentCellView);
                     }
                   
@@ -102,6 +111,7 @@ namespace Dev.GridLogic
                 {
                     Destroy(copyOfUnit.gameObject);
                     
+                    _ufo.SetProgressBarState(false);
                     ReturnUFO();
                     _currentCellView.SetBlinkingState(false);
                 }));
@@ -110,7 +120,7 @@ namespace Dev.GridLogic
 
         private void ReturnUFO()
         {
-            _ufo.transform.DOMove(new Vector3(99, _ufo.transform.position.y, 99), 0.5f).OnComplete((() =>
+            _ufo.transform.DOMove(new Vector3(99, _ufo.transform.position.y, 99), 0.5f * DifficultyModifier()).OnComplete((() =>
             {
                 SetUFOActiveState(false);
             }));

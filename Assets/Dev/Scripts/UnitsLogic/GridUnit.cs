@@ -6,9 +6,10 @@ namespace Dev.UnitsLogic
 {
     public abstract class GridUnit : MonoBehaviour
     {
+        [SerializeField] private Transform _view;
         [SerializeField] private MeshRenderer _meshRenderer;
         [SerializeField] private Gradient _gradient;
-        
+
         public abstract UnitType UnitType { get; }
         public Subject<Unit> OnDestroy { get; } = new Subject<Unit>();
         public int Id => gameObject.GetInstanceID();
@@ -17,14 +18,25 @@ namespace Dev.UnitsLogic
         private static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
         private int _level = 1;
 
+        public Vector3 ScaleByLevel(int level)
+        {
+            return (Vector3.one * 0.25f) * level;
+        }
+        
         public virtual void OnLevelUp(int level, bool afterMerge = false)
         {
             _level = level;
-            transform.localScale = (Vector3.one * 0.25f) * level;
+            _view.localScale = ScaleByLevel(level);
 
             SetColor(CurrentColor);
         }
 
+        public void SetPosition(Vector3 pos)
+        {
+            transform.position = pos;
+           // _view.transform.position = pos + Vector3.up * (ScaleByLevel(_level).y / 2);
+        }
+        
         public void SetColor(Color color)
         {
             _meshRenderer.material.SetColor(BaseColor, color);
