@@ -170,8 +170,13 @@ namespace Dev.GridLogic
             {   
                 if (cellData.UnitData.Level == level)
                 {
-                    UpgradeUnit(cellData.UnitData);
-                    return true;
+                    if (cellData.UnitData.UnitType == unitType)
+                    {
+                        UpgradeUnit(cellData.UnitData);
+                        return true;
+                    }
+
+                    return false;
                 }
 
                 return false;
